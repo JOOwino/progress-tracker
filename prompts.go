@@ -32,6 +32,16 @@ func ExistingFilePrompt() PromptFields {
 	}
 }
 
+func ListBooks(bookTitles []string) PromptFields {
+
+	return PromptFields{
+		Options:      bookTitles,
+		Headline:     "Your books",
+		ChoicePrefix: "Select resource to update: ",
+	}
+
+}
+
 func NewFilePrompt() PromptFields {
 	return PromptFields{
 		Options: []string{
