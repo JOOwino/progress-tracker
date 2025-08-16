@@ -16,16 +16,24 @@ import (
 
 var newFile bool
 var prompt PromptFields
+var choice int
 
 type Book struct {
-	ID                string `json:"id"`
-	Title             string `json:"title"`
-	Author            string `json:"author"`
-	Chapter           int    `json:"chapter"`
-	TotalPages        int    `json:"total_pages"`
-	CurrentPage       int    `json:"current_page"`
-	PercentageCovered int    `json:"percentage_covered"`
-	Status            string `json:"status"`
+	ID                string        `json:"id"`
+	Title             string        `json:"title"`
+	Author            string        `json:"author"`
+	Chapter           int           `json:"chapter"`
+	TotalPages        int           `json:"total_pages"`
+	CurrentPage       int           `json:"current_page"`
+	PercentageCovered int           `json:"percentage_covered"`
+	Status            string        `json:"status"`
+	BookSummary       []BookSummary `json:"book_summary"`
+}
+
+type BookSummary struct {
+	ChapterTitle string `json:"title"`
+	Pages        string `json:"pages"`
+	Summary      string `json:"summary"`
 }
 
 type ReadTracker struct {
@@ -103,11 +111,14 @@ func main() {
 		prompt = ExistingFilePrompt()
 	}
 
-	choice := multipleOptionsPrompt(prompt)
+	choice = multipleOptionsPrompt(prompt)
 
 	switch choice {
 	case 1:
 		ptracker.AddBook()
+	case 2:
+		ptracker.UpdateReadingProgress()
+
 	default:
 		fmt.Println("Default Option")
 
@@ -132,6 +143,45 @@ func (rt *ReadTracker) AddBook() {
 	}
 
 	rt.Books = append(rt.Books, book)
+	rt.saveFile()
+
+}
+
+func (rt *ReadTracker) UpdateReadingProgress() {
+	var bookTitles []string
+	for _, book := range rt.Books {
+		bookTitles = append(bookTitles, book.Title)
+	}
+	choice = multipleOptionsPrompt(ListBooks(bookTitles))
+
+	updateBook := rt.Books[choice-1]
+	//No summary yet, Should do an update.
+	b := len(updateBook.BookSummary) == 0
+	if b {
+		updateBook.BookSummary = []BookSummary{}
+	}
+
+	fmt.Printf("Book Summary: %v \n", updateBook.BookSummary)
+	//Prompt user with update fields
+	rt.updateSummary(choice - 1)
+
+}
+
+func (rt *ReadTracker) updateSummary(value int) {
+	chapterRead := singleOptionPrompt("Chapter Read: ")
+	pagesRead := singleOptionPrompt("Pages Read: ")
+	chapterSummary := singleOptionPrompt("A brief summary of what is read: ")
+
+	fmt.Println("Book Title: " + rt.Books[value].Title)
+
+	summary := BookSummary{
+		ChapterTitle: chapterRead,
+		Pages:        pagesRead,
+		Summary:      chapterSummary,
+	}
+
+	rt.Books[value].BookSummary = append(rt.Books[value].BookSummary, summary)
+	fmt.Printf("Book summary: %v \n", rt.Books[value].BookSummary)
 	rt.saveFile()
 
 }
@@ -186,6 +236,7 @@ func promptNumberConversion(prompt string) int {
 
 func singleOptionPrompt(prompt string) string {
 	fmt.Print(prompt)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	return scanner.Text()
